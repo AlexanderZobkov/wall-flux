@@ -1,6 +1,7 @@
 package com.github.AlexanderZobkov.wallflux;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.*;
@@ -52,7 +53,13 @@ public class BingWallpaperDownloader {
         }
 
         // Step 3: Parse the JSON response to get the imageUrl URL
-        final JSONObject jsonResponse = new JSONObject(response.toString());
+        final JSONObject jsonResponse;
+        try {
+            jsonResponse = new JSONObject(response.toString());
+        } catch (JSONException e) {
+            System.out.println("Malformed response: " + response);
+            throw e;
+        }
         System.out.println("Got the image: \n" + jsonResponse.toString(2));
         final JSONArray images = jsonResponse.getJSONArray("images");
         final JSONObject firstImage = images.getJSONObject(0);
