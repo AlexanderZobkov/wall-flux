@@ -15,10 +15,10 @@ public class App {
     private final AtomicReference<WallpaperDescriptor> wallpaperRef = new AtomicReference<>();
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private final BingWallpaperDownloader wallpaperDownloader = new BingWallpaperDownloader();
+    private TrayIcon trayIcon;
 
     public App() {
         try {
-            downloadAndChange();
             initUI();
             scheduleAutoUpdate();
         } catch (Exception e) {
@@ -37,7 +37,7 @@ public class App {
                     }).handleException(e);
                 }
             });
-        }, 1, 1, TimeUnit.HOURS);
+        }, 0, 1, TimeUnit.HOURS);
     }
 
     private Image generateIcon() {
@@ -58,25 +58,23 @@ public class App {
 
     private void initUI() throws AWTException {
         // Declare trayIcon first so we can use it in listeners
-        final TrayIcon trayIcon = new TrayIcon(generateIcon(), "WallFlux");
+        trayIcon = new TrayIcon(generateIcon(), "WallFlux");
         trayIcon.setImageAutoSize(true);
-        trayIcon.setToolTip(wallpaperRef.get().info());
 
         final PopupMenu popupMenu = new PopupMenu();
 
         // Refresh item
         final MenuItem refreshItem = new MenuItem("Refresh");
-        refreshItem.addActionListener((ThrowingActionListener) e -> {
-            downloadAndChange();
-            trayIcon.setToolTip(wallpaperRef.get().info());
-        });
-
+        refreshItem.addActionListener((ThrowingActionListener) e -> downloadAndChange());
         popupMenu.add(refreshItem);
 
         // Info item
         final MenuItem infoItem = new MenuItem("Show info");
-        infoItem.addActionListener((ThrowingActionListener) e ->
-            Desktop.getDesktop().browse(wallpaperRef.get().infoLink().toURI())
+        infoItem.addActionListener((ThrowingActionListener) e -> {
+                    if (wallpaperRef.get() != null) {
+                        Desktop.getDesktop().browse(wallpaperRef.get().infoLink().toURI());
+                    }
+                }
         );
         popupMenu.add(infoItem);
 
@@ -103,6 +101,7 @@ public class App {
             wallpaperRef.set(newWallpaperDescr);
             final File imageFile = wallpaperDownloader.download(newWallpaperDescr.imageUrl());
             WindowsWallpaperChanger.change(imageFile.getAbsolutePath());
+            trayIcon.setToolTip(wallpaperRef.get().info());
         } else {
             System.out.println("Keep wallpaper as no a new image from Bing");
         }
